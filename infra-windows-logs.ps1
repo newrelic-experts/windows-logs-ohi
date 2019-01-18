@@ -50,22 +50,19 @@ if(Test-Path $LAST_PULL_TIMESTAMP_FILE -PathType Leaf) {
 Set-Content -Path $LAST_PULL_TIMESTAMP_FILE -Value (Get-Date -Format o)
 
 ###
-# Pull events using -After param with timestamp
-###
-$events = Get-EventLog -LogName $LogName -After $timestamp;
-
-
-###
 # Add required 'event_type' to objects from Get-EventLog.
 # Add optional 'log_name' value to object.
 ###
-$events.ForEach({
-
-    Add-Member -NotePropertyName 'event_type' -NotePropertyValue 'Windows Event Logs' -InputObject $_;
-    Add-Member -NotePropertyName 'log_name' -NotePropertyValue $LogName -InputObject $_;
-
-});
-
+[array]$events | $events = Get-EventLog -LogName $LogName -After $timestamp | ForEach-Object {
+    @{
+        event_type = "WindowsEventLogSample"
+        logType = $LogName
+        message = $_.Message
+        machineName = $_.MachineName
+        source = $_.Source
+        entryType = $_.EntryType
+    }
+} 
 ###
 # Create hash table in required format for Infrastructure, populated
 # with event object log data and pipe to ConvertTo-Json with
@@ -73,12 +70,20 @@ $events.ForEach({
 ###
 $payload = @{
     name = "com.newrelic.windows.eventlog"
-    integration_version = "0.1.0"
-    protocol_version = 1
-    metrics = @($events)
-    inventory = @{}
-    events = @()
-} | ConvertTo-Json -Compress
+    integration_version = "0.2.0"
+    protocol_version = 2
+    data = @(
+        @{
+            entity = @{
+                name = $LogName
+                type = "WindowsEventLog"
+            }
+            metrics = @($events)
+            inventory = @{}
+            events = @()
+        }
+    )
+} | ConvertTo-Json -Depth 10 -Compress
 
 
 ###

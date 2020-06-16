@@ -80,7 +80,7 @@ if ($EventIds) {
 # Add required 'event_type' to objects from Get-EventLog.
 # Add optional 'log_name' value to object.
 ###
-$events.ForEach({
+$events | ForEach({
     Add-Member -NotePropertyName 'event_type' -NotePropertyValue 'Windows Event Logs' -InputObject $_
     Add-Member -NotePropertyName 'log_name' -NotePropertyValue $LogName -InputObject $_
 

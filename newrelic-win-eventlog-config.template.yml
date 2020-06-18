@@ -1,0 +1,36 @@
+# This is a template config file for v2.1 of New Relic's Windows event log Infrastructure integration.
+#
+# By default, we collect all entries from the Application and System log.  To add another log type,
+# copy an entire -name stanza, change the name so it's unique, and then set the LOGNAME property to your log's name (i.e. Security, Setup, etc)
+#
+# Filtering uses OR logic.  We first filter out the requested levels (Information, Warning) and then the event IDs.
+# If you use both filters simultaneously, be sure that you understand this interaction.  For example, you cannot filter out
+# all Information events except event ID 7036 (which is always level Info).
+
+integrations:
+  - name: nr-win-eventlogs-app
+    exec:
+      - C:\Program Files\New Relic\newrelic-infra\custom-integrations\win-eventlogs.bat
+    env:
+      # The name of the log to be sent (i.e. Application, System, etc) - this is REQUIRED.
+      LOGNAME: Application
+      # Your New Relic license key - this is REQUIRED.
+      NRLICENSEKEY: (YourNRLicenseKeyHere)
+      # Either none or a comma delimited list of the log levels to be filtered out and not sent to NR. (i.e. Information,Warning)
+      # Do not leave this blank.
+      EXCLLEVEL: none
+      # Either none or a comma delimited list of the event IDs to be filtered out and not sent to NR. (i.e. 123,456)
+      # Do not leave this blank.
+      EXCLEVENTID: none
+    working_dir: C:\Program Files\New Relic\newrelic-infra\custom-integrations\
+    interval: 300s
+  - name: nr-win-eventlogs-sys
+    exec:
+      - C:\Program Files\New Relic\newrelic-infra\custom-integrations\win-eventlogs.bat
+    env:
+      LOGNAME: System
+      NRLICENSEKEY: (YourNRLicenseKeyHere)
+      EXCLLEVEL: none
+      EXCLEVENTID: none
+    working_dir: C:\Program Files\New Relic\newrelic-infra\custom-integrations\
+    interval: 300s

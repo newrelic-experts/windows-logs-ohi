@@ -7,14 +7,18 @@
 
 ###
 # Parameters (a.k.a. Command Line Arguments)
-# Usage: -LogName "LogName" -EventIds 4608:4609:4946
+# Usage: -LogName "LogName" -EventIds 4608:4609:4946 -Severity "Error" -Pattern "failure"
 # -LogName      The name of the event log to gather events from.  Ex: System, Appication, etc. (Required)
 # -EventIds     An optional, colon delimited, list of event ids to gather.
+# -Severity     An optional, colon delimited, list of severities to gather.
+# -Pattern      An optional regular expression filter for the event messages.
 ###
 
 param (
     [string]$LogName=$(throw "-LogName is mandatory"),
-    [string]$EventIds
+    [string]$EventIds,
+    [string]$Severity,
+    [string]$Pattern
 )
 
 ###
@@ -27,7 +31,6 @@ param (
 
 $LAST_PULL_TIMESTAMP_FILE = "./last-pull-timestamp-$LogName.txt"
 
-
 ###
 # If timestamp file exists, use it; otherwise,
 # set timestamp to 15 minutes ago to pull some data on
@@ -35,14 +38,10 @@ $LAST_PULL_TIMESTAMP_FILE = "./last-pull-timestamp-$LogName.txt"
 ###
 
 if (Test-Path $LAST_PULL_TIMESTAMP_FILE -PathType Leaf) {
-
     $timestamp = Get-Content -Path $LAST_PULL_TIMESTAMP_FILE -Encoding String | Out-String
     $timestamp = [DateTime] $timestamp.ToString()
-
 } else{
-
     $timestamp = (Get-Date).AddMinutes(-240)
-
 }
 
 ###
@@ -68,10 +67,42 @@ if ($EventIds) {
     # Iterate over the events and copy only those we want to keep into the filteredEvents.
     $filteredEvents = @()
     foreach ($event in $events) {
-        if (-Not ($eventIdNums -Contains $event.EventID)) {
-            continue
+        if ($eventIdNums -Contains $event.EventID) {
+            $filteredEvents += $event
         }
-        $filteredEvents += $event
+    }
+    $events = $filteredEvents
+}
+
+###
+# If severity was given, filter to keep only the events having an id in our event id list.
+###
+if ($Severity) {
+    $SeverityStrings = $EventIds.Split(":")
+
+    # Iterate over the events and copy only those we want to keep into the filteredEvents.
+    $filteredEvents = @()
+    foreach ($event in $events) {
+        if ($SeverityStrings -Contains $event.EntryType) {
+            $filteredEvents += $event
+        }
+    }
+    $events = $filteredEvents
+}
+
+###
+# If pattern was given, filter to keep only the events having a message that matches the regex.
+###
+if ($pattern) {
+    $pattern
+    # Iterate over the events and copy only those we want to keep into the filteredEvents.
+    $filteredEvents = @()
+    foreach ($event in $events) {
+        $event.message
+        if ($event.message -imatch $pattern) {
+            "matched"
+            $filteredEvents += $event
+        }
     }
     $events = $filteredEvents
 }
@@ -83,7 +114,6 @@ if ($EventIds) {
 $events.ForEach({
     Add-Member -NotePropertyName 'event_type' -NotePropertyValue 'Windows Event Logs' -InputObject $_
     Add-Member -NotePropertyName 'log_name' -NotePropertyValue $LogName -InputObject $_
-
 });
 
 ###
@@ -99,7 +129,6 @@ $payload = @{
     inventory = @{}
     events = @()
 } | ConvertTo-Json -Compress
-
 
 ###
 # Output json string created above with regex to normalize date strings

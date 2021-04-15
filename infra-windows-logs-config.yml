@@ -1,7 +1,0 @@
-integration_name: com.newrelic.windows.eventlog
-
-instances:
-  - name: eventlog-system
-    command: system
-  - name: eventlog-application
-    command: application
